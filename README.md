@@ -1,6 +1,12 @@
 # gpg-util
 A simple GPG tool for encrypting and decrypting files
 
+### Installation
+```
+go get github.com/yashmehrotra/simple-gpg
+```
+
+### Usage
 ```
 A tool to simplify gpg
 
