@@ -1,4 +1,4 @@
-# gpg-util
+# simple-gpg
 A simple GPG tool for encrypting and decrypting files
 
 ### Installation
