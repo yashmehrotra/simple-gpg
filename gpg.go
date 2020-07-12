@@ -95,7 +95,13 @@ func main() {
 	flag.Usage = func() {
 		fmt.Printf("A tool to simplify gpg\n\n")
 		fmt.Printf("simple-gpg [args] file\n\n")
+		fmt.Println("Flags:")
 		flag.PrintDefaults()
+		fmt.Printf("\n\nExamples:\n\n")
+		fmt.Println("To encrypt a file")
+		fmt.Printf("$ simple-gpg accounts.pdf\n\n")
+		fmt.Println("To decrypt a file")
+		fmt.Printf("$ simple-gpg -decrypt accounts.pdf\n")
 	}
 	flag.Parse()
 
