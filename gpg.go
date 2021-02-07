@@ -49,6 +49,37 @@ func EncrpytFile(file string, password []byte, algo string) error {
 	return pt.Close()
 }
 
+func tarDir(srcPath, dstPath string) error {
+
+	f, err := os.OpenFile(dstPath, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600)
+	if err != nil {
+		panic(fmt.Sprintf("Error creating file %v", err.Error()))
+	}
+	return Tar(srcPath, f)
+}
+
+func compressIfDir(path string) (bool, string) {
+	// If given path is a directory, compress it and return
+	// the path  of the compressed file
+	compressed := false
+
+	// No action required, it is not a directory
+	if info, err := os.Stat(path); err == nil && !info.IsDir() {
+		return compressed, ""
+	}
+
+	// Tar + gzip this
+	fmt.Printf("WARNING: %s is a directory. Converting into .tar.gz\n", path)
+	suffix := "-compressed.tar.gz"
+	err := tarDir(path, path+suffix)
+	if err != nil {
+		// TODO: Better handling
+		panic(err)
+	}
+	compressed = true
+	return compressed, path + suffix
+}
+
 func DecrpytFile(file string, password []byte) error {
 	f, err := os.Open(file)
 	if err != nil {
@@ -106,6 +137,8 @@ func main() {
 	flag.Parse()
 
 	if len(flag.Args()) != 1 {
+		fmt.Println("Unexpected number of arguments")
+		fmt.Println(flag.Args()) //Debug
 		flag.Usage()
 		os.Exit(1)
 	}
@@ -121,7 +154,15 @@ func main() {
 	if *decrypt {
 		err = DecrpytFile(file, password)
 	} else {
-		err = EncrpytFile(file, password, *algo)
+		if compressed, newPath := compressIfDir(file); compressed {
+			file = newPath
+			// Remove tar, we only need to preserve the original directory
+			// os.Remove returns an error but we won't check it cause its not important
+			err = EncrpytFile(file, password, *algo)
+			os.Remove(file)
+		} else {
+			err = EncrpytFile(file, password, *algo)
+		}
 	}
 
 	if err != nil {
