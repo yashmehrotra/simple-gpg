@@ -26,4 +26,10 @@ $ simple-gpg accounts.pdf
 
 To decrypt a file
 $ simple-gpg -decrypt accounts.pdf
+
+To encrypt a folder
+$ simple-gpg /path/to/folder
+
+Note: When encrypting a folder, simple-gpg uses tar.gz format to compress the folder into an archive
+and then encrypts the archive
 ```
