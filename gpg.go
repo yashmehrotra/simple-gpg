@@ -14,6 +14,29 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
+const Description = `
+A tool to simplify gpg
+
+simple-gpg [args] file
+
+Flags:
+`
+
+const Examples = `
+Examples:
+
+To encrypt a file
+$ simple-gpg accounts.pdf
+
+To decrypt a file
+$ simple-gpg -decrypt accounts.pdf
+
+To encrypt a folder
+$ simple-gpg /path/to/folder
+
+Note: When encrypting a folder, simple-gpg uses tar.gz format to compress the folder into an archive and then encrypts the archive
+`
+
 func EncrpytFile(file string, password []byte, algo string) error {
 	cipher := packet.CipherAES256
 	if algo == "AES" {
@@ -124,21 +147,14 @@ func main() {
 	decrypt := flag.Bool("decrypt", false, "Set to true if you want to decrypt a file")
 
 	flag.Usage = func() {
-		fmt.Printf("A tool to simplify gpg\n\n")
-		fmt.Printf("simple-gpg [args] file\n\n")
-		fmt.Println("Flags:")
+		fmt.Println(Description)
 		flag.PrintDefaults()
-		fmt.Printf("\n\nExamples:\n\n")
-		fmt.Println("To encrypt a file")
-		fmt.Printf("$ simple-gpg accounts.pdf\n\n")
-		fmt.Println("To decrypt a file")
-		fmt.Printf("$ simple-gpg -decrypt accounts.pdf\n")
+		fmt.Println(Examples)
 	}
 	flag.Parse()
 
 	if len(flag.Args()) != 1 {
-		fmt.Println("Unexpected number of arguments")
-		fmt.Println(flag.Args()) //Debug
+		fmt.Println("Error: Unexpected number of arguments")
 		flag.Usage()
 		os.Exit(1)
 	}
