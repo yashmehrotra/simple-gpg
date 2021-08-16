@@ -25,13 +25,17 @@ Flags:
 const Examples = `
 Examples:
 
-To encrypt a file
+# To encrypt a file
 $ simple-gpg accounts.pdf
+Enter password:
 
-To decrypt a file
+# To encrypt a file with passowrd as argument
+$ simple-gpg -password secret-word accounts.pdf
+
+# To decrypt a file
 $ simple-gpg -decrypt accounts.pdf
 
-To encrypt a folder
+# To encrypt a folder
 $ simple-gpg /path/to/folder
 
 Note: When encrypting a folder, simple-gpg uses tar.gz format to compress the folder into an archive and then encrypts the archive
@@ -145,6 +149,7 @@ func DecrpytFile(file string, password []byte) error {
 func main() {
 	algo := flag.String("cipher-algo", "AES256", "Cipher algorithm to be used. Choose one of AES, AES192, AES256")
 	decrypt := flag.Bool("decrypt", false, "Set to true if you want to decrypt a file")
+	cliPassword := flag.String("password", "", "Password to use when encrypting/decrypting")
 
 	flag.Usage = func() {
 		fmt.Println(Description)
@@ -153,6 +158,7 @@ func main() {
 	}
 	flag.Parse()
 
+	var err error
 	if len(flag.Args()) != 1 {
 		fmt.Println("Error: Unexpected number of arguments")
 		flag.Usage()
@@ -160,12 +166,17 @@ func main() {
 	}
 	file := flag.Args()[0]
 
-	fmt.Printf("Enter password: ")
-	password, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		panic(err)
+	var password []byte
+	if *cliPassword == "" {
+		fmt.Printf("Enter password: ")
+		password, err = terminal.ReadPassword(int(os.Stdin.Fd()))
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println()
+	} else {
+		password = []byte(*cliPassword)
 	}
-	fmt.Println()
 
 	if *decrypt {
 		err = DecrpytFile(file, password)
