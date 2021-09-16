@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"golang.org/x/crypto/openpgp"
@@ -41,7 +42,7 @@ $ simple-gpg /path/to/folder
 Note: When encrypting a folder, simple-gpg uses tar.gz format to compress the folder into an archive and then encrypts the archive
 `
 
-func EncrpytFile(file string, password []byte, algo string) error {
+func EncrpytFile(file string, password []byte, algo string, outputFile string) error {
 	cipher := packet.CipherAES256
 	if algo == "AES" {
 		cipher = packet.CipherAES128
@@ -61,7 +62,7 @@ func EncrpytFile(file string, password []byte, algo string) error {
 	}
 	defer f.Close()
 
-	w, err := os.Create(file + ".gpg")
+	w, err := os.Create(outputFile)
 	if err != nil {
 		return err
 	}
@@ -72,7 +73,7 @@ func EncrpytFile(file string, password []byte, algo string) error {
 	if _, err := io.Copy(pt, f); err != nil {
 		return err
 	}
-	fmt.Println("Encryption successful:", file+".gpg")
+	fmt.Println("Encryption successful:", outputFile)
 	return pt.Close()
 }
 
@@ -85,7 +86,7 @@ func tarDir(srcPath, dstPath string) error {
 	return Tar(srcPath, f)
 }
 
-func compressIfDir(path string) (bool, string) {
+func compressIfDir(path, suffix string) (bool, string) {
 	// If given path is a directory, compress it and return
 	// the path  of the compressed file
 	compressed := false
@@ -97,14 +98,14 @@ func compressIfDir(path string) (bool, string) {
 
 	// Tar + gzip this
 	fmt.Printf("WARNING: %s is a directory. Converting into .tar.gz\n", path)
-	suffix := "-compressed.tar.gz"
-	err := tarDir(path, path+suffix)
+	outputPath := filepath.Join("/tmp/", path, suffix)
+	err := tarDir(path, outputPath)
 	if err != nil {
 		// TODO: Better handling
 		panic(err)
 	}
 	compressed = true
-	return compressed, path + suffix
+	return compressed, outputPath
 }
 
 func DecrpytFile(file string, password []byte) error {
@@ -150,6 +151,7 @@ func main() {
 	algo := flag.String("cipher-algo", "AES256", "Cipher algorithm to be used. Choose one of AES, AES192, AES256")
 	decrypt := flag.Bool("decrypt", false, "Set to true if you want to decrypt a file")
 	cliPassword := flag.String("password", "", "Password to use when encrypting/decrypting")
+	outputFile := flag.String("outputFile", "", "Path for output file. (Default: <filename>.gpg)")
 
 	flag.Usage = func() {
 		fmt.Println(Description)
@@ -181,14 +183,23 @@ func main() {
 	if *decrypt {
 		err = DecrpytFile(file, password)
 	} else {
-		if compressed, newPath := compressIfDir(file); compressed {
+		outputPath := *outputFile
+		suffixDir := "-compressed.tar.gz"
+		if compressed, newPath := compressIfDir(file, suffixDir); compressed {
+			if outputPath == "" {
+				outputPath = file + suffixDir + ".gpg"
+			}
+
 			file = newPath
 			// Remove tar, we only need to preserve the original directory
 			// os.Remove returns an error but we won't check it cause its not important
-			err = EncrpytFile(file, password, *algo)
+			err = EncrpytFile(file, password, *algo, outputPath)
 			os.Remove(file)
 		} else {
-			err = EncrpytFile(file, password, *algo)
+			if outputPath == "" {
+				outputPath = file + ".gpg"
+			}
+			err = EncrpytFile(file, password, *algo, outputPath)
 		}
 	}
 
