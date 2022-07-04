@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"path/filepath"
 	"strings"
@@ -86,26 +87,29 @@ func tarDir(srcPath, dstPath string) error {
 	return Tar(srcPath, f)
 }
 
-func compressIfDir(path, suffix string) (bool, string) {
-	// If given path is a directory, compress it and return
-	// the path  of the compressed file
-	compressed := false
-
-	// No action required, it is not a directory
+func IsDir(path string) bool {
 	if info, err := os.Stat(path); err == nil && !info.IsDir() {
-		return compressed, ""
+		return false
 	}
+	return true
+}
 
+func randomString(n int) string {
+	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+
+	s := make([]rune, n)
+	for i := range s {
+		s[i] = letters[rand.Intn(len(letters))]
+	}
+	return string(s)
+}
+
+func compressDir(path string) (string, error) {
 	// Tar + gzip this
 	fmt.Printf("WARNING: %s is a directory. Converting into .tar.gz\n", path)
-	outputPath := filepath.Join("/tmp/", path, suffix)
+	outputPath := filepath.Join("/tmp/", filepath.Base(path)+"-"+randomString(12))
 	err := tarDir(path, outputPath)
-	if err != nil {
-		// TODO: Better handling
-		panic(err)
-	}
-	compressed = true
-	return compressed, outputPath
+	return outputPath, err
 }
 
 func DecrpytFile(file string, password []byte) error {
@@ -149,7 +153,7 @@ func DecrpytFile(file string, password []byte) error {
 
 func main() {
 	algo := flag.String("cipher-algo", "AES256", "Cipher algorithm to be used. Choose one of AES, AES192, AES256")
-	decrypt := flag.Bool("decrypt", false, "Set to true if you want to decrypt a file")
+	decrypt := flag.Bool("decrypt", false, "Set to true if you want to decrypt the file")
 	cliPassword := flag.String("password", "", "Password to use when encrypting/decrypting")
 	outputFile := flag.String("outputFile", "", "Path for output file. (Default: <filename>.gpg)")
 
@@ -184,17 +188,16 @@ func main() {
 		err = DecrpytFile(file, password)
 	} else {
 		outputPath := *outputFile
-		suffixDir := "-compressed.tar.gz"
-		if compressed, newPath := compressIfDir(file, suffixDir); compressed {
+		if IsDir(file) {
 			if outputPath == "" {
-				outputPath = file + suffixDir + ".gpg"
+				outputPath = file + ".tar.gz.gpg"
 			}
-
-			file = newPath
-			// Remove tar, we only need to preserve the original directory
-			// os.Remove returns an error but we won't check it cause its not important
-			err = EncrpytFile(file, password, *algo, outputPath)
-			os.Remove(file)
+			compressedDirPath, err := compressDir(file)
+			if err != nil {
+				panic(err)
+			}
+			err = EncrpytFile(compressedDirPath, password, *algo, outputPath)
+			os.Remove(compressedDirPath)
 		} else {
 			if outputPath == "" {
 				outputPath = file + ".gpg"
@@ -206,5 +209,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
 }
