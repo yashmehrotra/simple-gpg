@@ -3,7 +3,7 @@ A simple GPG tool for encrypting and decrypting files
 
 ### Installation
 ```
-go get github.com/yashmehrotra/simple-gpg
+go install github.com/yashmehrotra/simple-gpg@latest
 ```
 
 ### Usage
