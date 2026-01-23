@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -133,7 +132,7 @@ func DecrpytFile(file string, password []byte) error {
 	if err != nil {
 		return err
 	}
-	plaintext, err := ioutil.ReadAll(md.UnverifiedBody)
+	plaintext, err := io.ReadAll(md.UnverifiedBody)
 	if err != nil {
 		return err
 	}
